@@ -1,7 +1,9 @@
+package greedy
 
 case class Activity(start: Int, end: Int)
 
 object ActivitySelection {
+
     def getMaxActivities(activities: Array[Activity]): Int = {
 
         if(activities.isEmpty) return 0
@@ -24,4 +26,5 @@ object ActivitySelection {
 
         return totalSelectedActivities
     }
+
 }
