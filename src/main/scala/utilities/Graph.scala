@@ -27,10 +27,10 @@ final class DirectedGraph[T] extends Graph[T] {
 }
 
 final class UndirectedGraph[T] extends Graph[T] {
-    override def addConnection(id_1:T, id_2:T) {
-        if(!nodes.contains(id_1)) nodes += id_1 -> new Node(id_1)
-        if(!nodes.contains(id_2)) nodes += id_2 -> new Node(id_2)
-        nodes(id_1).neighbors += nodes(id_2)
-        nodes(id_2).neighbors += nodes(id_1)
+    override def addConnection(id1: T, id2: T) {
+        if(!nodes.contains(id1)) nodes += id1 -> new Node(id1)
+        if(!nodes.contains(id2)) nodes += id2 -> new Node(id2)
+        nodes(id1).neighbors += nodes(id2)
+        nodes(id2).neighbors += nodes(id1)
     }
 }
