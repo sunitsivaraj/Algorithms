@@ -1,16 +1,32 @@
 package utilities
 
-class Node[T](val id: T) { 
-    val neighbors = new scala.collection.mutable.ListBuffer[T]() 
-}
+case class DirectedEdge[T](fromNode: T, toNode: T, weight: Double)
 
 /* abtract Graph class */
 
+object Graph {
+
+    case class Edge[T](adjNodeID: T, weight: Double) { // Edge is used in internal representation
+        def toDirectedEdge(fromNode: T) = DirectedEdge(fromNode, adjNodeID, weight) 
+    }
+
+    class Node[T](val id: T) { 
+        val neighbors = new scala.collection.mutable.ListBuffer[Edge[T]]()
+    }
+}
+
 abstract class Graph[T] {
 
+    import Graph.{Node, Edge}
+    import scala.collection.mutable.ListBuffer
+
     val nodes = scala.collection.mutable.Map[T, Node[T]]()
+
+    def getNumNodes(): Int = nodes.size
+    
     def contains(id: T):Boolean = nodes.contains(id)
-    def addConnection(id1: T, id2: T): Unit
+
+    def addConnection(id1: T, id2: T, weight: Double): Unit
     def removeConnection(id1: T, id2: T): Unit
 
     def getNode(id: T):Node[T] = {
@@ -25,16 +41,19 @@ abstract class Graph[T] {
 
 final class DirectedGraph[T] extends Graph[T] {
 
-    import scala.collection.mutable.Map
+    import scala.collection.mutable.{Map, ListBuffer}
+    import Graph.{Node, Edge}
     
-    override def addConnection(id1: T, id2: T): Unit = {
+    override def addConnection(id1: T, id2: T, weight: Double = 1.0): Unit = {
         if(!nodes.contains(id1)) nodes += id1 -> new Node(id1)
         if(!nodes.contains(id2)) nodes += id2 -> new Node(id2)
-        nodes(id1).neighbors += id2
+        nodes(id1).neighbors += Edge(id2, weight)
     }
 
     override def removeConnection(id1: T, id2: T): Unit = {
-        nodes(id1).neighbors -= id2
+        val edge = nodes(id1).neighbors.find(_.adjNodeID == id2)
+        if(edge == None) throw new Exception("no connection found")
+        nodes(id1).neighbors -= edge.get
     }
 
     override def isCycle(): Boolean = {
@@ -49,29 +68,48 @@ final class DirectedGraph[T] extends Graph[T] {
         var cycle = false
         for(node <- nodes; neighbor <- node._2.neighbors) if(!cycle) {
             val nodeParent = find(node._1)
-            val neighborParent = find(neighbor)
+            val neighborParent = find(neighbor.adjNodeID)
             if(nodeParent == neighborParent) cycle = true
             else parent(nodeParent) = Some(neighborParent) // union operation
         }
 
         return cycle
     }
+
+    def getEdges(): ListBuffer[DirectedEdge[T]] = {
+        val edges = ListBuffer[DirectedEdge[T]]()
+        nodes.foreach(node => node._2.neighbors.foreach(edge => edges += edge.toDirectedEdge(node._1)))
+        return edges
+    }
+
+    def addEdge(edge: DirectedEdge[T]): Unit = {
+        addConnection(edge.fromNode, edge.toNode, edge.weight)
+    }
+
+    def removeEdge(edge: DirectedEdge[T]): Unit = {
+        removeConnection(edge.fromNode, edge.toNode)
+    }
 }
 
 final class UndirectedGraph[T] extends Graph[T] {
 
     import scala.collection.mutable.Map
+    import Graph.{Node, Edge}
 
-    override def addConnection(id1: T, id2: T) {
+    override def addConnection(id1: T, id2: T, weight: Double = 1.0) {
         if(!nodes.contains(id1)) nodes += id1 -> new Node(id1)
         if(!nodes.contains(id2)) nodes += id2 -> new Node(id2)
-        nodes(id1).neighbors += id2
-        nodes(id2).neighbors += id1
+        nodes(id1).neighbors += Edge(id2, weight)
+        nodes(id2).neighbors += Edge(id1, weight)
     }
 
     override def removeConnection(id1: T, id2: T): Unit = {
-        nodes(id1).neighbors -= id2
-        nodes(id2).neighbors -= id1
+        val id1Toid2Edge = nodes(id1).neighbors.find(_.adjNodeID == id2)
+        val id2Toid1Edge = nodes(id2).neighbors.find(_.adjNodeID == id1)
+        if(id1Toid2Edge == None) throw new Exception("no connection found")
+        if(id2Toid1Edge == None) throw new Exception("no connection found")
+        nodes(id1).neighbors -= id1Toid2Edge.get
+        nodes(id2).neighbors -= id2Toid1Edge.get
     }
 
     override def isCycle(): Boolean = {
@@ -87,7 +125,7 @@ final class UndirectedGraph[T] extends Graph[T] {
         var cycle = false
         for(node <- nodes; neighbor <- node._2.neighbors) if(!cycle && !seen.contains(neighbor)) {
             val nodeParent = find(node._1)
-            val neighborParent = find(neighbor)
+            val neighborParent = find(neighbor.adjNodeID)
             if(nodeParent == neighborParent) cycle = true
             else {
                 parent(nodeParent) = Some(neighborParent) // union operation
