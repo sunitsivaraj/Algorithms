@@ -1,6 +1,8 @@
 package utilities
 
-case class DirectedEdge[T](fromNode: T, toNode: T, weight: Double)
+case class DirectedEdge[T](fromNode: T, toNode: T, weight: Double) extends Ordered[DirectedEdge[T]] {
+    def compare(that: DirectedEdge[T]): Int = weight.compare(that.weight)
+}
 
 /* abtract Graph class */
 
